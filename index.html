@@ -10,26 +10,83 @@
     header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
     h1 { font-size: 1.1rem; margin: 0; }
     .status { font-size: 0.8rem; padding: 4px 8px; border-radius: 4px; background: #e0e0e0; }
-    .table-container { overflow-x: auto; background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-    table { width: 100%; border-collapse: collapse; min-width: 320px; }
-    th, td { border: 1px solid #e1e4e8; padding: 8px; text-align: left; font-size: 0.9rem; }
-    th { background: #fafbfc; position: sticky; top: 0; font-weight: 600; }
+    
+    .table-container { 
+      overflow-x: auto; 
+      background: #fff; 
+      border-radius: 8px; 
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    table { 
+      border-collapse: collapse; 
+      width: auto; 
+      min-width: 100%; 
+    }
+    
+    th, td { 
+      border: 1px solid #e1e4e8; 
+      padding: 6px 8px; 
+      text-align: left; 
+      font-size: 0.9rem; 
+      vertical-align: middle;
+    }
+    
+    th { 
+      background: #fafbfc; 
+      position: sticky; 
+      top: 0; 
+      font-weight: 600; 
+      z-index: 1;
+    }
+
+    /* === PRIMERA COLUMNA: Texto íntegro sin cortes === */
+    th:first-child, td:first-child {
+      white-space: normal;       /* Permite saltos de línea naturales si es largo */
+      min-width: 220px;          /* Espacio amplio garantizado */
+      font-weight: 500;
+      background-color: #fafbfc;
+    }
+
+    /* === RESTO DE COLUMNAS: Ancho mínimo adaptativo === */
+    th:not(:first-child), td:not(:first-child) {
+      width: 1%;                 /* Fuerza al navegador a ajustar la celda a su contenido mínimo */
+      white-space: nowrap;       /* Evita que los datos o encabezados se dividan */
+      text-align: center;
+    }
+
     input.cell-edit {
-      width: 100%;
       border: 1px solid transparent;
       padding: 6px;
       font-size: 0.9rem;
       background: transparent;
       border-radius: 4px;
+      text-align: inherit;
     }
+
+    /* Ajuste para inputs de la primera columna vs el resto */
+    td:first-child input.cell-edit {
+      width: 100%;
+      min-width: 200px;
+      text-align: left;
+    }
+
+    td:not(:first-child) input.cell-edit {
+      width: 80px;               /* Ancho compacto por defecto para números/fechas/estados */
+      min-width: 60px;
+    }
+
     input.cell-edit:focus {
       background: #fff;
       border-color: #0066cc;
       outline: none;
       box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.2);
     }
+    
     .saving { background: #fff8db !important; }
     .saved { background: #e6ffed !important; transition: background 0.5s ease; }
+    
     .btn-refresh {
       background: #0066cc;
       color: #fff;
@@ -56,8 +113,7 @@
   </div>
 
   <script>
-    // REEMPLAZA ESTA VARIABLE CON TU URL DE APPS SCRIPT
-    const API_URL = "https://script.google.com/macros/s/AKfycbw_r8WmMCojKf4GdzDnLKDkH1MMjuForZLo3gd7a6UedFct5ontqmdQDcWJW_m9GcU/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbw_r8WmMxCojKf4GdzDnLKDkH1MMjuForZLo3gd7a6UedFct5ontqmdQDcWJW_m9GcU/exec";
 
     async function loadData() {
       const statusEl = document.getElementById("status");
@@ -91,7 +147,6 @@
         row.forEach((cellVal, cIdx) => {
           const el = rIdx === 0 ? document.createElement("th") : document.createElement("td");
           
-          // Encabezados de solo lectura en la fila 1
           if (rIdx === 0) {
             el.textContent = cellVal;
           } else {
@@ -99,7 +154,6 @@
             input.className = "cell-edit";
             input.value = cellVal !== undefined ? cellVal : "";
             
-            // Guardar al perder el foco (blur) o al pulsar Enter
             input.dataset.row = rIdx + 1;
             input.dataset.col = cIdx + 1;
             input.dataset.original = input.value;
@@ -129,7 +183,7 @@
       try {
         const res = await fetch(API_URL, {
           method: "POST",
-          headers: { "Content-Type": "text/plain;charset=utf-8" }, // text/plain evita bloqueos CORS preflight en Apps Script
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
           body: JSON.stringify({ row, col, value })
         });
         
@@ -150,7 +204,6 @@
       }
     }
 
-    // Carga inicial
     loadData();
   </script>
 </body>
