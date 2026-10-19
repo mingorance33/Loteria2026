@@ -10,53 +10,70 @@
     header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
     h1 { font-size: 1.1rem; margin: 0; }
     .status { font-size: 0.8rem; padding: 4px 8px; border-radius: 4px; background: #e0e0e0; }
-    
+
     .table-container { 
       overflow-x: auto; 
       background: #fff; 
       border-radius: 8px; 
       box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
       -webkit-overflow-scrolling: touch;
+      user-select: none;
     }
-    
+
     table { 
       border-collapse: collapse; 
-      width: auto; 
-      min-width: 100%; 
+      table-layout: fixed; /* Clave para permitir redimensionamiento libre */
+      width: max-content;
     }
-    
+
     th, td { 
       border: 1px solid #e1e4e8; 
       padding: 6px 8px; 
-      text-align: left; 
       font-size: 0.9rem; 
       vertical-align: middle;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
-    
+
     th { 
       background: #fafbfc; 
-      position: sticky; 
-      top: 0; 
+      position: relative; 
       font-weight: 600; 
       z-index: 1;
+      padding-right: 18px; /* Espacio para no tapar el tirador */
     }
 
-    /* === PRIMERA COLUMNA: Texto íntegro sin cortes === */
-    th:first-child, td:first-child {
-      white-space: normal;       /* Permite saltos de línea naturales si es largo */
-      min-width: 220px;          /* Espacio amplio garantizado */
-      font-weight: 500;
-      background-color: #fafbfc;
+    /* Tirador táctil para arrastrar y cambiar ancho */
+    .resizer {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 16px; /* Ancho táctil generoso para el dedo */
+      height: 100%;
+      cursor: col-resize;
+      touch-action: none;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
 
-    /* === RESTO DE COLUMNAS: Ancho mínimo adaptativo === */
-    th:not(:first-child), td:not(:first-child) {
-      width: 1%;                 /* Fuerza al navegador a ajustar la celda a su contenido mínimo */
-      white-space: nowrap;       /* Evita que los datos o encabezados se dividan */
-      text-align: center;
+    .resizer::after {
+      content: "";
+      width: 3px;
+      height: 60%;
+      background-color: #cbd5e1;
+      border-radius: 2px;
+    }
+
+    .resizer.resizing::after, .resizer:hover::after {
+      background-color: #0066cc;
+      width: 4px;
+      height: 100%;
     }
 
     input.cell-edit {
+      width: 100%;
       border: 1px solid transparent;
       padding: 6px;
       font-size: 0.9rem;
@@ -65,28 +82,16 @@
       text-align: inherit;
     }
 
-    /* Ajuste para inputs de la primera columna vs el resto */
-    td:first-child input.cell-edit {
-      width: 100%;
-      min-width: 200px;
-      text-align: left;
-    }
-
-    td:not(:first-child) input.cell-edit {
-      width: 80px;               /* Ancho compacto por defecto para números/fechas/estados */
-      min-width: 60px;
-    }
-
     input.cell-edit:focus {
       background: #fff;
       border-color: #0066cc;
       outline: none;
       box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.2);
     }
-    
+
     .saving { background: #fff8db !important; }
     .saved { background: #e6ffed !important; transition: background 0.5s ease; }
-    
+
     .btn-refresh {
       background: #0066cc;
       color: #fff;
@@ -113,7 +118,9 @@
   </div>
 
   <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbwmdlDWxVb_QrMKiUtl9izR3E0yQy8iB1m3xUpDtEQJofqqGRmKY_-9Ci0weGePa10/exec";
+    // Tu URL de Google Apps Script
+     const API_URL = https://script.google.com/macros/s/AKfycbwmdlDWxVb_QrMKiUtl9izR3E0yQy8iB1m3xUpDtEQJofqqGRmKY_-9Ci0weGePa10/exec";
+
     async function loadData() {
       const statusEl = document.getElementById("status");
       statusEl.textContent = "Sincronizando...";
@@ -122,7 +129,7 @@
       try {
         const res = await fetch(API_URL);
         const json = await res.json();
-        
+
         if (json.status === "success") {
           renderTable(json.data);
           statusEl.textContent = "Conectado";
@@ -143,16 +150,34 @@
 
       rows.forEach((row, rIdx) => {
         const tr = document.createElement("tr");
+
         row.forEach((cellVal, cIdx) => {
           const el = rIdx === 0 ? document.createElement("th") : document.createElement("td");
-          
+
           if (rIdx === 0) {
-            el.textContent = cellVal;
+            // Contenedor de texto del encabezado
+            const spanText = document.createElement("span");
+            spanText.textContent = cellVal;
+            el.appendChild(spanText);
+
+            // Ancho inicial por defecto (primera columna más ancha, resto compacta)
+            if (cIdx === 0) {
+              el.style.width = "240px";
+            } else {
+              el.style.width = "90px";
+            }
+
+            // Tirador para redimensionar la columna
+            const resizer = document.createElement("div");
+            resizer.className = "resizer";
+            el.appendChild(resizer);
+            attachResizable(resizer, el);
+
           } else {
             const input = document.createElement("input");
             input.className = "cell-edit";
             input.value = cellVal !== undefined ? cellVal : "";
-            
+
             input.dataset.row = rIdx + 1;
             input.dataset.col = cIdx + 1;
             input.dataset.original = input.value;
@@ -170,6 +195,61 @@
       });
     }
 
+    // Lógica para redimensionar con el ratón o con el dedo
+    function attachResizable(resizer, th) {
+      let startX, startWidth;
+
+      const onStart = (clientX) => {
+        startX = clientX;
+        startWidth = th.offsetWidth;
+        resizer.classList.add("resizing");
+        document.body.style.cursor = "col-resize";
+      };
+
+      const onMove = (clientX) => {
+        if (!startX) return;
+        const width = startWidth + (clientX - startX);
+        if (width > 45) { // Ancho mínimo de seguridad
+          th.style.width = width + "px";
+        }
+      };
+
+      const onEnd = () => {
+        startX = null;
+        resizer.classList.remove("resizing");
+        document.body.style.cursor = "";
+      };
+
+      // Eventos de ratón
+      resizer.addEventListener("mousedown", (e) => {
+        onStart(e.clientX);
+        const mouseMoveHandler = (e) => onMove(e.clientX);
+        const mouseUpHandler = () => {
+          onEnd();
+          document.removeEventListener("mousemove", mouseMoveHandler);
+          document.removeEventListener("mouseup", mouseUpHandler);
+        };
+        document.addEventListener("mousemove", mouseMoveHandler);
+        document.addEventListener("mouseup", mouseUpHandler);
+      });
+
+      // Eventos táctiles para móviles
+      resizer.addEventListener("touchstart", (e) => {
+        if (e.touches.length === 1) {
+          onStart(e.touches[0].clientX);
+        }
+      }, { passive: true });
+
+      resizer.addEventListener("touchmove", (e) => {
+        if (e.touches.length === 1) {
+          onMove(e.touches[0].clientX);
+        }
+      }, { passive: true });
+
+      resizer.addEventListener("touchend", onEnd);
+      resizer.addEventListener("touchcancel", onEnd);
+    }
+
     async function updateCell(input) {
       const row = input.dataset.row;
       const col = input.dataset.col;
@@ -185,7 +265,7 @@
           headers: { "Content-Type": "text/plain;charset=utf-8" },
           body: JSON.stringify({ row, col, value })
         });
-        
+
         const result = await res.json();
         if (result.status === "success") {
           input.classList.remove("saving");
