@@ -5,101 +5,169 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Editor Rápido de Hoja</title>
   <style>
-    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { margin: 0; padding: 12px; background: #f4f6f8; color: #222; }
-    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-    h1 { font-size: 1.1rem; margin: 0; }
-    .status { font-size: 0.8rem; padding: 4px 8px; border-radius: 4px; background: #e0e0e0; }
+    * { 
+      box-sizing: border-box; 
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+    }
+    body { 
+      margin: 0; 
+      padding: 12px; 
+      background: #f4f6f8; 
+      color: #222; 
+    }
+    header { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      margin-bottom: 12px; 
+    }
+    h1 { 
+      font-size: 1.1rem; 
+      margin: 0; 
+    }
+    .status { 
+      font-size: 0.8rem; 
+      padding: 4px 8px; 
+      border-radius: 4px; 
+      background: #e0e0e0; 
+    }
 
+    /* Contenedor con scroll vertical y horizontal */
     .table-container { 
-      overflow-x: auto; 
+      overflow: auto; 
+      max-height: calc(100vh - 85px);
       background: #fff; 
       border-radius: 8px; 
       box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
       -webkit-overflow-scrolling: touch;
-      user-select: none;
+      position: relative;
     }
 
     table { 
-      border-collapse: collapse; 
-      table-layout: fixed; /* Clave para permitir redimensionamiento libre */
+      border-collapse: separate; 
+      border-spacing: 0;
+      table-layout: fixed; 
       width: max-content;
     }
 
     th, td { 
-      border: 1px solid #e1e4e8; 
+      border-right: 1px solid #e1e4e8; 
+      border-bottom: 1px solid #e1e4e8; 
       padding: 6px 8px; 
       font-size: 0.9rem; 
-      vertical-align: middle;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    th { 
-      background: #fafbfc; 
-      position: relative; 
-      font-weight: 600; 
-      z-index: 1;
-      padding-right: 18px; /* Espacio para no tapar el tirador */
-    }
-
-    /* Tirador táctil para arrastrar y cambiar ancho */
-    .resizer {
-      position: absolute;
-      top: 0;
-      right: 0;
-      width: 16px; /* Ancho táctil generoso para el dedo */
-      height: 100%;
-      cursor: col-resize;
-      touch-action: none;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-
-    .resizer::after {
-      content: "";
-      width: 3px;
-      height: 60%;
-      background-color: #cbd5e1;
-      border-radius: 2px;
-    }
-
-    .resizer.resizing::after, .resizer:hover::after {
-      background-color: #0066cc;
-      width: 4px;
-      height: 100%;
-    }
-
-    input.cell-edit {
-      width: 100%;
-      border: 1px solid transparent;
-      padding: 6px;
-      font-size: 0.9rem;
-      background: transparent;
-      border-radius: 4px;
-      text-align: inherit;
-    }
-
-    input.cell-edit:focus {
+      vertical-align: middle; 
+      overflow: hidden; 
+      text-overflow: ellipsis; 
+      white-space: nowrap; 
       background: #fff;
-      border-color: #0066cc;
-      outline: none;
-      box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.2);
+    }
+
+    /* FILA SUPERIOR FIJA (STICKY HEADER) */
+    th { 
+      position: sticky;
+      top: 0;
+      background: #f1f5f9; 
+      font-weight: 600; 
+      z-index: 10; 
+      padding-right: 18px; 
+      user-select: none;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+    }
+
+    /* COLUMNA LATERAL FIJA CON BOTÓN + */
+    .col-action {
+      width: 44px !important;
+      min-width: 44px !important;
+      max-width: 44px !important;
+      text-align: center;
+      padding: 4px;
+      position: sticky;
+      left: 0;
+      z-index: 5;
+      background: #f8fafc;
+    }
+
+    /* Esquina superior izquierda: fija sobre todo */
+    th.col-action {
+      z-index: 15;
+    }
+
+    .btn-add-row {
+      background: #e2e8f0;
+      border: 1px solid #cbd5e1;
+      color: #334155;
+      border-radius: 4px;
+      width: 28px;
+      height: 28px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      font-weight: bold;
+    }
+    .btn-add-row:active {
+      background: #0066cc;
+      color: #fff;
+    }
+
+    /* Tirador táctil y de ratón para redimensionar */
+    .resizer { 
+      position: absolute; 
+      top: 0; 
+      right: 0; 
+      width: 18px; 
+      height: 100%; 
+      cursor: col-resize; 
+      touch-action: none; 
+      display: flex; 
+      justify-content: center; 
+      align-items: center; 
+      z-index: 12;
+    }
+
+    .resizer::after { 
+      content: ""; 
+      width: 3px; 
+      height: 60%; 
+      background-color: #cbd5e1; 
+      border-radius: 2px; 
+    }
+
+    .resizer.resizing::after, .resizer:hover::after { 
+      background-color: #0066cc; 
+      width: 4px; 
+      height: 100%; 
+    }
+
+    input.cell-edit { 
+      width: 100%; 
+      border: 1px solid transparent; 
+      padding: 6px; 
+      font-size: 0.9rem; 
+      background: transparent; 
+      border-radius: 4px; 
+      text-align: inherit; 
+    }
+
+    input.cell-edit:focus { 
+      background: #fff; 
+      border-color: #0066cc; 
+      outline: none; 
+      box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.2); 
     }
 
     .saving { background: #fff8db !important; }
     .saved { background: #e6ffed !important; transition: background 0.5s ease; }
 
-    .btn-refresh {
-      background: #0066cc;
-      color: #fff;
-      border: none;
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-size: 0.85rem;
-      cursor: pointer;
+    .btn-refresh { 
+      background: #0066cc; 
+      color: #fff; 
+      border: none; 
+      padding: 6px 12px; 
+      border-radius: 6px; 
+      font-size: 0.85rem; 
+      cursor: pointer; 
     }
   </style>
 </head>
@@ -118,8 +186,10 @@
   </div>
 
   <script>
-    // Tu URL de Google Apps Script
-     const API_URL = "https://script.google.com/macros/s/AKfycbwmdlDWxVb_QrMKiUtl9izR3E0yQy8iB1m3xUpDtEQJofqqGRmKY_-9Ci0weGePa10/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbxWXq4O9Ty7-r1B5-GIebQU0IZhduYqxi3KdoU4-VF_18NBN-bMeVjptrlylqAvnTg/exec";
+     
+    let columnWidths = JSON.parse(localStorage.getItem("sheet_col_widths") || "{}");
+    let currentData = [];
 
     async function loadData() {
       const statusEl = document.getElementById("status");
@@ -131,7 +201,8 @@
         const json = await res.json();
 
         if (json.status === "success") {
-          renderTable(json.data);
+          currentData = json.data;
+          renderTable(currentData);
           statusEl.textContent = "Conectado";
           statusEl.style.background = "#d4edda";
         } else {
@@ -151,27 +222,35 @@
       rows.forEach((row, rIdx) => {
         const tr = document.createElement("tr");
 
+        // 1. Botón lateral para insertar fila (+)
+        const actionEl = rIdx === 0 ? document.createElement("th") : document.createElement("td");
+        actionEl.className = "col-action";
+
+        const btnAdd = document.createElement("button");
+        btnAdd.className = "btn-add-row";
+        btnAdd.textContent = "+";
+        btnAdd.title = rIdx === 0 ? "Insertar fila al inicio" : "Insertar fila debajo";
+        btnAdd.onclick = () => insertRowAt(rIdx + 1);
+        actionEl.appendChild(btnAdd);
+        tr.appendChild(actionEl);
+
+        // 2. Celdas de datos
         row.forEach((cellVal, cIdx) => {
           const el = rIdx === 0 ? document.createElement("th") : document.createElement("td");
 
           if (rIdx === 0) {
-            // Contenedor de texto del encabezado
             const spanText = document.createElement("span");
             spanText.textContent = cellVal;
             el.appendChild(spanText);
 
-            // Ancho inicial por defecto (primera columna más ancha, resto compacta)
-            if (cIdx === 0) {
-              el.style.width = "240px";
-            } else {
-              el.style.width = "90px";
-            }
+            // Mantener anchos personalizados
+            const savedWidth = columnWidths[cIdx];
+            el.style.width = savedWidth ? `${savedWidth}px` : (cIdx === 0 ? "200px" : "100px");
 
-            // Tirador para redimensionar la columna
             const resizer = document.createElement("div");
             resizer.className = "resizer";
             el.appendChild(resizer);
-            attachResizable(resizer, el);
+            attachResizable(resizer, el, cIdx);
 
           } else {
             const input = document.createElement("input");
@@ -195,61 +274,68 @@
       });
     }
 
-    // Lógica para redimensionar con el ratón o con el dedo
-    function attachResizable(resizer, th) {
-      let startX, startWidth;
+    // Inserta una fila en la hoja de cálculo y actualiza
+    async function insertRowAt(sheetRowIndex) {
+      const statusEl = document.getElementById("status");
+      statusEl.textContent = "Insertando...";
+      statusEl.style.background = "#fff3cd";
 
-      const onStart = (clientX) => {
-        startX = clientX;
-        startWidth = th.offsetWidth;
-        resizer.classList.add("resizing");
-        document.body.style.cursor = "col-resize";
-      };
+      try {
+        const res = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({ action: "insertRow", afterRow: sheetRowIndex })
+        });
+        const result = await res.json();
 
-      const onMove = (clientX) => {
-        if (!startX) return;
-        const width = startWidth + (clientX - startX);
-        if (width > 45) { // Ancho mínimo de seguridad
-          th.style.width = width + "px";
+        if (result.status === "success") {
+          await loadData();
+        } else {
+          throw new Error(result.message);
         }
-      };
-
-      const onEnd = () => {
-        startX = null;
-        resizer.classList.remove("resizing");
-        document.body.style.cursor = "";
-      };
-
-      // Eventos de ratón
-      resizer.addEventListener("mousedown", (e) => {
-        onStart(e.clientX);
-        const mouseMoveHandler = (e) => onMove(e.clientX);
-        const mouseUpHandler = () => {
-          onEnd();
-          document.removeEventListener("mousemove", mouseMoveHandler);
-          document.removeEventListener("mouseup", mouseUpHandler);
-        };
-        document.addEventListener("mousemove", mouseMoveHandler);
-        document.addEventListener("mouseup", mouseUpHandler);
-      });
-
-      // Eventos táctiles para móviles
-      resizer.addEventListener("touchstart", (e) => {
-        if (e.touches.length === 1) {
-          onStart(e.touches[0].clientX);
-        }
-      }, { passive: true });
-
-      resizer.addEventListener("touchmove", (e) => {
-        if (e.touches.length === 1) {
-          onMove(e.touches[0].clientX);
-        }
-      }, { passive: true });
-
-      resizer.addEventListener("touchend", onEnd);
-      resizer.addEventListener("touchcancel", onEnd);
+      } catch (err) {
+        statusEl.textContent = "Error al insertar";
+        statusEl.style.background = "#f8d7da";
+        alert("No se pudo insertar la fila.");
+        console.error(err);
+      }
     }
 
+    // Redimensionamiento unificado táctil y ratón con Pointer Events
+    function attachResizable(resizer, th, colIndex) {
+      let startX = 0;
+      let startWidth = 0;
+
+      resizer.addEventListener("pointerdown", (e) => {
+        startX = e.clientX;
+        startWidth = th.offsetWidth;
+        resizer.classList.add("resizing");
+        resizer.setPointerCapture(e.pointerId);
+        document.body.style.cursor = "col-resize";
+      });
+
+      resizer.addEventListener("pointermove", (e) => {
+        if (!resizer.hasPointerCapture(e.pointerId)) return;
+        const delta = e.clientX - startX;
+        const newWidth = Math.max(50, startWidth + delta);
+        th.style.width = newWidth + "px";
+      });
+
+      const onPointerEnd = (e) => {
+        if (resizer.hasPointerCapture(e.pointerId)) {
+          resizer.releasePointerCapture(e.pointerId);
+          resizer.classList.remove("resizing");
+          document.body.style.cursor = "";
+          columnWidths[colIndex] = th.offsetWidth;
+          localStorage.setItem("sheet_col_widths", JSON.stringify(columnWidths));
+        }
+      };
+
+      resizer.addEventListener("pointerup", onPointerEnd);
+      resizer.addEventListener("pointercancel", onPointerEnd);
+    }
+
+    // Guarda los cambios de una celda
     async function updateCell(input) {
       const row = input.dataset.row;
       const col = input.dataset.col;
@@ -278,7 +364,7 @@
       } catch (err) {
         input.classList.remove("saving");
         input.value = input.dataset.original;
-        alert("No se pudo guardar el cambio. Comprueba la conexión.");
+        alert("No se pudo guardar el cambio.");
         console.error(err);
       }
     }
